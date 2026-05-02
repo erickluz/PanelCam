@@ -1,0 +1,38 @@
+# Dependencies
+node_modules/
+
+# Build outputs
+dist/
+dist-electron/
+release/
+
+# Electron Builder cache/output metadata
+*.blockmap
+builder-debug.yml
+builder-effective-config.yaml
+
+# Downloaded/runtime binaries
+resources/go2rtc/go2rtc.exe
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Environment files
+.env
+.env.*
+!.env.example
+
+# OS/editor files
+.DS_Store
+Thumbs.db
+desktop.ini
+.idea/
+.vscode/
+
+# TypeScript incremental metadata
+*.tsbuildinfo

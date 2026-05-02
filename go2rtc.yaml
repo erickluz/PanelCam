@@ -1,0 +1,12 @@
+api:
+  listen: ":1984"
+  origin: "*"
+
+rtsp:
+  listen: ":8554"
+
+webrtc:
+  listen: ":8555"
+
+streams:
+  sample_camera: rtsp://USUARIO:SENHA@192.168.0.17:554/stream1
