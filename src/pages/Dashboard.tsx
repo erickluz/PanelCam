@@ -23,8 +23,9 @@ export function Dashboard() {
   const [isCheckingGateway, setIsCheckingGateway] = useState(true);
   const [isSyncingGateway, setIsSyncingGateway] = useState(false);
   const [isBooting, setIsBooting] = useState(true);
-  const [isFocusLayout, setIsFocusLayout] = useState(false);
+  const [isFocusLayout, setIsFocusLayout] = useState(true);
   const [focusColumnsChoice, setFocusColumnsChoice] = useState<FocusColumnChoice>('auto');
+  const [focusFitMode, setFocusFitMode] = useState<'cover' | 'contain'>('contain');
 
   const cameraCount = cameras.length;
   const streamSignature = useMemo(
@@ -51,9 +52,17 @@ export function Dashboard() {
     return getFocusColumnCount(cameraCount);
   }, [focusColumnsChoice, cameraCount]);
 
+  const activeFocusRows = useMemo(() => {
+    if (cameraCount <= 0) return 1;
+    const cols = typeof activeFocusColumns === 'number' ? activeFocusColumns : 2;
+    return Math.max(1, Math.ceil(cameraCount / cols));
+  }, [cameraCount, activeFocusColumns]);
+
   const focusGridStyle = isFocusLayout
     ? ({
-        '--focus-columns': activeFocusColumns
+        '--focus-columns': activeFocusColumns,
+        '--focus-rows': activeFocusRows,
+        '--video-object-fit': focusFitMode
       } as CSSProperties)
     : undefined;
 
@@ -154,15 +163,6 @@ export function Dashboard() {
               {/* Layout Switcher */}
               <div className="layout-switcher" role="tablist" aria-label="Modo de visualização">
                 <button
-                  className={`layout-pill-btn ${!isFocusLayout ? 'active' : ''}`}
-                  type="button"
-                  onClick={() => setIsFocusLayout(false)}
-                  title="Modo padrão com cartões expandidos"
-                >
-                  <GridIcon size={15} />
-                  <span>Grid Padrão</span>
-                </button>
-                <button
                   className={`layout-pill-btn ${isFocusLayout ? 'active' : ''}`}
                   type="button"
                   onClick={() => setIsFocusLayout(true)}
@@ -171,23 +171,53 @@ export function Dashboard() {
                   <FocusIcon size={15} />
                   <span>Central de Foco</span>
                 </button>
+                <button
+                  className={`layout-pill-btn ${!isFocusLayout ? 'active' : ''}`}
+                  type="button"
+                  onClick={() => setIsFocusLayout(false)}
+                  title="Modo padrão com cartões expandidos"
+                >
+                  <GridIcon size={15} />
+                  <span>Grid Padrão</span>
+                </button>
               </div>
 
               {/* Focus Column Density Selector */}
               {isFocusLayout ? (
-                <div className="density-group" title="Colunas do painel de monitoramento">
-                  {(['auto', 1, 2, 3, 4] as FocusColumnChoice[]).map((choice) => (
+                <>
+                  <div className="density-group" title="Colunas do painel de monitoramento">
+                    {(['auto', 1, 2, 3, 4] as FocusColumnChoice[]).map((choice) => (
+                      <button
+                        key={choice}
+                        type="button"
+                        className={`density-btn ${focusColumnsChoice === choice ? 'active' : ''}`}
+                        onClick={() => setFocusColumnsChoice(choice)}
+                        title={choice === 'auto' ? 'Colunas automáticas' : `${choice} Colunas`}
+                      >
+                        {choice === 'auto' ? 'Auto' : `${choice}C`}
+                      </button>
+                    ))}
+                  </div>
+
+                  <div className="density-group" title="Enquadramento do vídeo">
                     <button
-                      key={choice}
                       type="button"
-                      className={`density-btn ${focusColumnsChoice === choice ? 'active' : ''}`}
-                      onClick={() => setFocusColumnsChoice(choice)}
-                      title={choice === 'auto' ? 'Colunas automáticas' : `${choice} Colunas`}
+                      className={`density-btn ${focusFitMode === 'contain' ? 'active' : ''}`}
+                      onClick={() => setFocusFitMode('contain')}
+                      title="Ajustar mantendo proporção original"
                     >
-                      {choice === 'auto' ? 'Auto' : `${choice}C`}
+                      Ajustar
                     </button>
-                  ))}
-                </div>
+                    <button
+                      type="button"
+                      className={`density-btn ${focusFitMode === 'cover' ? 'active' : ''}`}
+                      onClick={() => setFocusFitMode('cover')}
+                      title="Preencher 100% da área sem bordas pretas"
+                    >
+                      Preencher
+                    </button>
+                  </div>
+                </>
               ) : null}
 
               {/* Quick Add Camera Button */}
@@ -284,6 +314,14 @@ function getFocusColumnCount(cameraCount: number) {
   }
 
   if (cameraCount <= 6) {
+    return 3;
+  }
+
+  if (cameraCount <= 8) {
+    return 4;
+  }
+
+  if (cameraCount === 9) {
     return 3;
   }
 
