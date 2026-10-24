@@ -11,11 +11,16 @@ import {
 } from '../components/icons';
 import { createCamera, loadCameras, saveCameras } from '../services/cameraStorage';
 import { checkGo2RtcHealth, configureGo2RtcStreams } from '../services/go2rtc';
+import {
+  type FocusColumnChoice,
+  type FocusFitMode,
+  loadLayoutPreferences,
+  saveLayoutPreferences
+} from '../services/layoutPreferences';
 import type { Camera, CameraFormValues } from '../types/camera';
 
-type FocusColumnChoice = 'auto' | 1 | 2 | 3 | 4;
-
 export function Dashboard() {
+  const [initialPrefs] = useState(() => loadLayoutPreferences());
   const [cameras, setCameras] = useState<Camera[]>([]);
   const [hasLoadedCameras, setHasLoadedCameras] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -23,9 +28,19 @@ export function Dashboard() {
   const [isCheckingGateway, setIsCheckingGateway] = useState(true);
   const [isSyncingGateway, setIsSyncingGateway] = useState(false);
   const [isBooting, setIsBooting] = useState(true);
-  const [isFocusLayout, setIsFocusLayout] = useState(true);
-  const [focusColumnsChoice, setFocusColumnsChoice] = useState<FocusColumnChoice>('auto');
-  const [focusFitMode, setFocusFitMode] = useState<'cover' | 'contain'>('contain');
+  const [isFocusLayout, setIsFocusLayout] = useState<boolean>(initialPrefs.isFocusLayout);
+  const [focusColumnsChoice, setFocusColumnsChoice] = useState<FocusColumnChoice>(
+    initialPrefs.focusColumnsChoice
+  );
+  const [focusFitMode, setFocusFitMode] = useState<FocusFitMode>(initialPrefs.focusFitMode);
+
+  useEffect(() => {
+    saveLayoutPreferences({
+      isFocusLayout,
+      focusColumnsChoice,
+      focusFitMode
+    });
+  }, [isFocusLayout, focusColumnsChoice, focusFitMode]);
 
   const cameraCount = cameras.length;
   const streamSignature = useMemo(

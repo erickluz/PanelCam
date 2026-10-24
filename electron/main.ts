@@ -14,6 +14,7 @@ import {
   startGo2Rtc,
   stopGo2Rtc
 } from './go2rtcManager.js';
+import { loadWindowState, trackWindowState } from './windowStore.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const isDev = !app.isPackaged;
@@ -50,9 +51,13 @@ ipcMain.handle('cameras:save', (_event, cameras) => saveCamerasToUserData(camera
 ipcMain.handle('cameras:status', () => getCameraStoreStatus());
 
 function createWindow() {
+  const windowState = loadWindowState();
+
   const mainWindow = new BrowserWindow({
-    width: 1360,
-    height: 860,
+    width: windowState.width,
+    height: windowState.height,
+    x: windowState.x,
+    y: windowState.y,
     minWidth: 1024,
     minHeight: 680,
     backgroundColor: '#06090e',
@@ -65,6 +70,12 @@ function createWindow() {
       preload: path.join(__dirname, 'preload.cjs')
     }
   });
+
+  if (windowState.isMaximized) {
+    mainWindow.maximize();
+  }
+
+  trackWindowState(mainWindow);
 
   mainWindow.removeMenu();
   mainWindow.webContents.setWindowOpenHandler(({ url }) => {
