@@ -2,6 +2,12 @@ import { app, BrowserWindow, ipcMain, shell } from 'electron';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import {
+  ensureCameraStoreFile,
+  getCameraStoreStatus,
+  loadCamerasFromUserData,
+  saveCamerasToUserData
+} from './cameraStore.js';
+import {
   checkGo2RtcHealth,
   configureGo2RtcStreams,
   getGo2RtcStatus,
@@ -11,6 +17,7 @@ import {
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const isDev = !app.isPackaged;
+app.setName('CamPanel');
 
 function getWindowIconPath() {
   if (app.isPackaged) {
@@ -29,7 +36,18 @@ ipcMain.handle('go2rtc:health', async (_event, baseUrl: string) => {
 });
 
 ipcMain.handle('go2rtc:status', () => getGo2RtcStatus());
-ipcMain.handle('go2rtc:configure-streams', (_event, streams) => configureGo2RtcStreams(streams));
+ipcMain.handle('go2rtc:configure-streams', (_event, cameras) => {
+  saveCamerasToUserData(cameras);
+  return configureGo2RtcStreams(
+    cameras.map((camera: { streamName: string; rtspUrl: string }) => ({
+      streamName: camera.streamName,
+      rtspUrl: camera.rtspUrl
+    }))
+  );
+});
+ipcMain.handle('cameras:load', () => loadCamerasFromUserData());
+ipcMain.handle('cameras:save', (_event, cameras) => saveCamerasToUserData(cameras));
+ipcMain.handle('cameras:status', () => getCameraStoreStatus());
 
 function createWindow() {
   const mainWindow = new BrowserWindow({
@@ -43,6 +61,7 @@ function createWindow() {
     webPreferences: {
       contextIsolation: true,
       nodeIntegration: false,
+      sandbox: false,
       preload: path.join(__dirname, 'preload.cjs')
     }
   });
@@ -62,8 +81,10 @@ function createWindow() {
 }
 
 app.whenReady().then(() => {
-  startGo2Rtc();
+  app.setPath('userData', path.join(app.getPath('appData'), 'CamPanel'));
+  ensureCameraStoreFile();
   createWindow();
+  startGo2Rtc();
 
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) {

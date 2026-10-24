@@ -41,8 +41,36 @@ button {
 }
 
 .dashboard {
+  position: relative;
   min-height: 100vh;
   padding: 32px;
+}
+
+.dashboard.focus-layout {
+  height: 100vh;
+  min-height: 0;
+  padding: 16px;
+  overflow: hidden;
+}
+
+.dashboard-content {
+  transition:
+    filter 180ms ease,
+    opacity 180ms ease;
+}
+
+.focus-layout .dashboard-content {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+}
+
+.dashboard-content.is-blurred {
+  filter: blur(10px);
+  opacity: 0.42;
+  pointer-events: none;
+  user-select: none;
 }
 
 .dashboard-header {
@@ -53,11 +81,27 @@ button {
   margin-bottom: 28px;
 }
 
+.focus-layout .dashboard-header {
+  align-items: center;
+  flex: 0 0 auto;
+  margin-bottom: 12px;
+}
+
 .dashboard-header h1 {
   margin: 4px 0 4px;
   font-size: clamp(2rem, 4vw, 3.7rem);
   font-weight: 760;
   letter-spacing: 0;
+}
+
+.focus-layout .dashboard-header h1 {
+  margin: 0;
+  font-size: 1.45rem;
+}
+
+.focus-layout .dashboard-header p,
+.focus-layout .eyebrow {
+  display: none;
 }
 
 .dashboard-header p {
@@ -74,11 +118,35 @@ button {
   text-transform: uppercase;
 }
 
+.layout-toggle-button {
+  flex: 0 0 auto;
+  border: 1px solid rgba(45, 212, 191, 0.36);
+  border-radius: 12px;
+  padding: 10px 14px;
+  background: rgba(45, 212, 191, 0.1);
+  color: #dffcf8;
+  font-weight: 720;
+}
+
+.layout-toggle-button:hover {
+  border-color: rgba(45, 212, 191, 0.7);
+  background: rgba(45, 212, 191, 0.16);
+}
+
 .camera-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 18px;
   align-items: stretch;
+}
+
+.focus-layout .camera-grid {
+  flex: 1 1 auto;
+  min-height: 0;
+  place-content: center;
+  gap: 12px;
+  grid-template-columns: repeat(var(--focus-columns, 2), minmax(0, 1fr));
+  grid-auto-rows: auto;
 }
 
 .camera-card,
@@ -96,6 +164,12 @@ button {
   overflow: hidden;
 }
 
+.focus-layout .camera-card {
+  aspect-ratio: 16 / 9;
+  min-height: 0;
+  border-radius: 12px;
+}
+
 .camera-card-header {
   display: flex;
   align-items: center;
@@ -103,6 +177,11 @@ button {
   gap: 12px;
   min-height: 62px;
   padding: 14px 16px;
+}
+
+.focus-layout .camera-card-header {
+  min-height: 42px;
+  padding: 8px 10px;
 }
 
 .camera-name-button,
@@ -118,6 +197,11 @@ button {
   font-weight: 720;
   line-height: 1.45;
   text-align: left;
+}
+
+.focus-layout .camera-name-button,
+.focus-layout .camera-name-input {
+  font-size: 0.88rem;
 }
 
 .camera-name-button {
@@ -145,6 +229,12 @@ button {
   color: #c9d6e8;
 }
 
+.focus-layout .icon-button {
+  width: 30px;
+  height: 30px;
+  border-radius: 8px;
+}
+
 .icon-button:hover {
   background: rgba(255, 255, 255, 0.08);
 }
@@ -162,6 +252,10 @@ button {
   overflow: hidden;
 }
 
+.focus-layout .video-shell {
+  min-height: 0;
+}
+
 .video-shell video {
   display: block;
   width: 100%;
@@ -171,6 +265,24 @@ button {
   background: #05080d;
   transform-origin: center;
   transition: transform 120ms ease-out;
+}
+
+.focus-layout .video-shell video {
+  height: 100%;
+  min-height: 0;
+  object-fit: contain;
+}
+
+@media (max-width: 980px) {
+  .focus-layout .camera-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 680px) {
+  .focus-layout .camera-grid {
+    grid-template-columns: 1fr;
+  }
 }
 
 .video-shell:fullscreen {
@@ -200,6 +312,45 @@ button {
   border: 0;
   background: transparent;
   cursor: zoom-in;
+}
+
+.video-pip-button {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  z-index: 3;
+  display: inline-grid;
+  place-items: center;
+  width: 38px;
+  height: 38px;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 12px;
+  background: rgba(5, 8, 13, 0.42);
+  color: #eef4ff;
+  opacity: 0;
+  transform: translateY(-4px);
+  backdrop-filter: blur(10px);
+  transition:
+    opacity 140ms ease,
+    transform 140ms ease,
+    background 140ms ease,
+    border-color 140ms ease;
+}
+
+.video-shell:hover .video-pip-button,
+.video-pip-button:focus-visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.video-pip-button:hover {
+  border-color: rgba(45, 212, 191, 0.5);
+  background: rgba(20, 184, 166, 0.18);
+}
+
+.video-pip-button:focus-visible {
+  outline: 2px solid rgba(45, 212, 191, 0.85);
+  outline-offset: 2px;
 }
 
 .video-status {
@@ -373,6 +524,34 @@ button {
   height: fit-content;
 }
 
+.loading-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 30;
+  display: grid;
+  place-items: center;
+  align-content: center;
+  gap: 16px;
+  background: rgba(3, 7, 13, 0.46);
+  color: #dbe7f7;
+  font-size: 0.95rem;
+  backdrop-filter: blur(6px);
+}
+
+.loading-spinner {
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  border: 4px solid rgba(154, 174, 205, 0.22);
+  border-top-color: var(--accent);
+  animation: spin 850ms linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
 
 @media (max-width: 720px) {
   .dashboard {

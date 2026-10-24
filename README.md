@@ -106,7 +106,13 @@ ports:
 3. Informe nome e URL no formato `rtsp://usuario:senha@ip:porta/caminho`.
 4. Salve.
 
-As cameras ficam persistidas no `localStorage` do app. O player envia a URL RTSP como `src` para o go2rtc embutido e toca pelo endpoint WebRTC `POST /api/webrtc?src=<fonte>`, com fallback HLS em `/api/stream.m3u8?src=<fonte>`.
+As cameras ficam persistidas em um arquivo JSON na pasta de usuario do sistema. No Windows, o caminho padrao e:
+
+```text
+%APPDATA%/CamPanel/cameras.json
+```
+
+O player usa o go2rtc embutido e toca pelo endpoint WebRTC `POST /api/webrtc?src=<stream>`, com fallback HLS em `/api/stream.m3u8?src=<stream>`.
 
 ## Configuracao por ambiente
 
@@ -130,7 +136,7 @@ Este comando valida TypeScript, gera o build do renderer e compila os arquivos e
 ## Limitacoes atuais
 
 - Nao ha gravacao, IA, login, cloud, notificacoes ou ONVIF.
-- A persistencia usa `localStorage`, adequada para o escopo inicial.
+- A persistencia usa `cameras.json` na pasta de usuario do sistema.
 - HLS e fallback; a baixa latencia depende do WebRTC e da conectividade com o go2rtc.
 - Credenciais RTSP cadastradas no formulario ficam no armazenamento local do app.
 - O instalador gerado ainda nao esta assinado com certificado de publicador; o Windows pode exibir aviso de SmartScreen.

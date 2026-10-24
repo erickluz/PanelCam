@@ -24,7 +24,13 @@ export async function checkGo2RtcHealth(options: Go2RtcOptions = {}) {
 }
 
 export async function configureGo2RtcStreams(
-  streams: Array<{ streamName: string; rtspUrl: string }>
+  streams: Array<{
+    id?: string;
+    name?: string;
+    rtspUrl: string;
+    streamName: string;
+    createdAt?: string;
+  }>
 ) {
   if (window.desktopApp?.configureGo2RtcStreams) {
     await window.desktopApp.configureGo2RtcStreams(streams);

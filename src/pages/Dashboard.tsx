@@ -1,3 +1,4 @@
+import type { CSSProperties } from 'react';
 import { useEffect, useMemo, useState } from 'react';
 import { AddCameraCard } from '../components/AddCameraCard';
 import { AddCameraModal } from '../components/AddCameraModal';
@@ -7,11 +8,14 @@ import { checkGo2RtcHealth, configureGo2RtcStreams } from '../services/go2rtc';
 import type { Camera, CameraFormValues } from '../types/camera';
 
 export function Dashboard() {
-  const [cameras, setCameras] = useState<Camera[]>(() => loadCameras());
+  const [cameras, setCameras] = useState<Camera[]>([]);
+  const [hasLoadedCameras, setHasLoadedCameras] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isGatewayOnline, setIsGatewayOnline] = useState(false);
   const [isCheckingGateway, setIsCheckingGateway] = useState(true);
   const [isSyncingGateway, setIsSyncingGateway] = useState(false);
+  const [isBooting, setIsBooting] = useState(true);
+  const [isFocusLayout, setIsFocusLayout] = useState(false);
   const cameraCount = cameras.length;
   const streamSignature = useMemo(
     () => cameras.map((camera) => `${camera.streamName}:${camera.rtspUrl}`).join('|'),
@@ -19,12 +23,16 @@ export function Dashboard() {
   );
 
   useEffect(() => {
-    saveCameras(cameras);
-  }, [cameras]);
+    void bootDashboard();
+  }, []);
 
   useEffect(() => {
+    if (!hasLoadedCameras) {
+      return;
+    }
+
     void syncGatewayStreams(cameras);
-  }, [streamSignature]);
+  }, [hasLoadedCameras, streamSignature]);
 
   const subtitle = useMemo(() => {
     if (cameraCount === 1) {
@@ -33,10 +41,15 @@ export function Dashboard() {
 
     return `${cameraCount} cameras configuradas`;
   }, [cameraCount]);
+  const focusGridStyle = isFocusLayout
+    ? ({
+        '--focus-columns': getFocusColumnCount(cameraCount)
+      } as CSSProperties)
+    : undefined;
 
   async function handleAddCamera(values: CameraFormValues) {
     const camera = createCamera(values);
-    setCameras((current) => [...current, camera]);
+    await updateCameras([...cameras, camera]);
   }
 
   async function syncGatewayStreams(nextCameras: Camera[]) {
@@ -44,12 +57,7 @@ export function Dashboard() {
     setIsCheckingGateway(true);
 
     try {
-      await configureGo2RtcStreams(
-        nextCameras.map((camera) => ({
-          streamName: camera.streamName,
-          rtspUrl: camera.rtspUrl
-        }))
-      );
+      await configureGo2RtcStreams(nextCameras);
       await refreshGatewayStatus();
     } finally {
       setIsSyncingGateway(false);
@@ -69,37 +77,59 @@ export function Dashboard() {
   }
 
   function handleRemoveCamera(cameraId: string) {
-    setCameras((current) => current.filter((camera) => camera.id !== cameraId));
+    void updateCameras(cameras.filter((camera) => camera.id !== cameraId));
   }
 
   function handleRenameCamera(cameraId: string, name: string) {
-    setCameras((current) =>
-      current.map((camera) => (camera.id === cameraId ? { ...camera, name } : camera))
+    void updateCameras(
+      cameras.map((camera) => (camera.id === cameraId ? { ...camera, name } : camera))
     );
   }
 
-  return (
-    <main className="dashboard">
-      <header className="dashboard-header">
-        <div>
-          <span className="eyebrow">Monitoramento</span>
-          <h1>Painel</h1>
-          <p>{subtitle}</p>
-        </div>
-      </header>
+  async function updateCameras(nextCameras: Camera[]) {
+    await saveCameras(nextCameras);
+    await configureGo2RtcStreams(nextCameras);
+    setCameras(nextCameras);
+  }
 
-      <section className="camera-grid" aria-label="Cameras cadastradas">
-        {cameras.map((camera) => (
-          <CameraCard
-            key={camera.id}
-            camera={camera}
-            isGatewayOnline={isGatewayOnline}
-            onRename={handleRenameCamera}
-            onRemove={handleRemoveCamera}
-          />
-        ))}
-        <AddCameraCard onClick={() => setIsModalOpen(true)} />
-      </section>
+  return (
+    <main className={isFocusLayout ? 'dashboard focus-layout' : 'dashboard'}>
+      <div className={isBooting ? 'dashboard-content is-blurred' : 'dashboard-content'}>
+        <header className="dashboard-header">
+          <div>
+            <span className="eyebrow">Monitoramento</span>
+            <h1>Painel</h1>
+            <p>{subtitle}</p>
+          </div>
+          <button
+            className="layout-toggle-button"
+            type="button"
+            onClick={() => setIsFocusLayout((current) => !current)}
+          >
+            {isFocusLayout ? 'Layout padrão' : 'Expandir layout'}
+          </button>
+        </header>
+
+        <section className="camera-grid" style={focusGridStyle} aria-label="Cameras cadastradas">
+          {cameras.map((camera) => (
+            <CameraCard
+              key={camera.id}
+              camera={camera}
+              isGatewayOnline={isGatewayOnline}
+              onRename={handleRenameCamera}
+              onRemove={handleRemoveCamera}
+            />
+          ))}
+          {!isFocusLayout ? <AddCameraCard onClick={() => setIsModalOpen(true)} /> : null}
+        </section>
+      </div>
+
+      {isBooting ? (
+        <div className="loading-overlay" role="status" aria-live="polite">
+          <div className="loading-spinner" />
+          <span>Carregando cameras...</span>
+        </div>
+      ) : null}
 
       <AddCameraModal
         isOpen={isModalOpen}
@@ -108,4 +138,34 @@ export function Dashboard() {
       />
     </main>
   );
+
+  async function bootDashboard() {
+    setIsBooting(true);
+
+    try {
+      const storedCameras = await loadCameras();
+      setCameras(storedCameras);
+      setHasLoadedCameras(true);
+      void syncGatewayStreams(storedCameras);
+    } finally {
+      setIsBooting(false);
+      document.getElementById('boot-screen')?.remove();
+    }
+  }
+}
+
+function getFocusColumnCount(cameraCount: number) {
+  if (cameraCount <= 1) {
+    return 1;
+  }
+
+  if (cameraCount <= 4) {
+    return 2;
+  }
+
+  if (cameraCount <= 6) {
+    return 3;
+  }
+
+  return 4;
 }

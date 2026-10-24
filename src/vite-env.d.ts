@@ -11,12 +11,37 @@ interface Window {
       message: string;
     }>;
     configureGo2RtcStreams?: (
-      streams: Array<{ streamName: string; rtspUrl: string }>
+      streams: Array<{
+        id?: string;
+        name?: string;
+        rtspUrl: string;
+        streamName: string;
+        createdAt?: string;
+      }>
     ) => Promise<{
       running: boolean;
       binaryPath: string;
       configPath: string;
       message: string;
     }>;
+    loadCameras?: () => Promise<
+      Array<{
+        id: string;
+        name: string;
+        rtspUrl: string;
+        streamName: string;
+        createdAt: string;
+      }>
+    >;
+    saveCameras?: (
+      cameras: Array<{
+        id: string;
+        name: string;
+        rtspUrl: string;
+        streamName: string;
+        createdAt: string;
+      }>
+    ) => Promise<string>;
+    getCameraStoreStatus?: () => Promise<{ filePath: string }>;
   };
 }
