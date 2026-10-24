@@ -55,7 +55,7 @@ function createWindow() {
     height: 860,
     minWidth: 1024,
     minHeight: 680,
-    backgroundColor: '#0b1018',
+    backgroundColor: '#06090e',
     title: 'CamPanel',
     icon: getWindowIconPath(),
     webPreferences: {

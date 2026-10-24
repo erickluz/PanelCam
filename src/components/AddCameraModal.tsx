@@ -1,4 +1,5 @@
 import { FormEvent, useState } from 'react';
+import { CloseIcon, Plus } from './icons';
 import type { CameraFormValues } from '../types/camera';
 
 type AddCameraModalProps = {
@@ -6,6 +7,25 @@ type AddCameraModalProps = {
   onClose: () => void;
   onSave: (values: CameraFormValues) => Promise<void> | void;
 };
+
+const RTSP_PRESETS = [
+  {
+    name: 'Intelbras',
+    url: 'rtsp://admin:admin123@192.168.1.108:554/cam/realmonitor?channel=1&subtype=0'
+  },
+  {
+    name: 'Hikvision',
+    url: 'rtsp://admin:admin123@192.168.1.64:554/Streaming/Channels/101'
+  },
+  {
+    name: 'Dahua',
+    url: 'rtsp://admin:admin123@192.168.1.108:554/live'
+  },
+  {
+    name: 'ONVIF Genérico',
+    url: 'rtsp://admin:admin123@192.168.1.50:554/live/ch0'
+  }
+];
 
 export function AddCameraModal({ isOpen, onClose, onSave }: AddCameraModalProps) {
   const [name, setName] = useState('');
@@ -17,28 +37,39 @@ export function AddCameraModal({ isOpen, onClose, onSave }: AddCameraModalProps)
     return null;
   }
 
+  function handleApplyPreset(presetUrl: string, presetName: string) {
+    setRtspUrl(presetUrl);
+    if (!name.trim()) {
+      setName(`Câmera ${presetName}`);
+    }
+    setError('');
+  }
+
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setError('');
 
-    if (!name.trim() || !rtspUrl.trim()) {
-      setError('Informe nome e URL RTSP.');
+    const trimmedName = name.trim();
+    const trimmedUrl = rtspUrl.trim();
+
+    if (!trimmedName || !trimmedUrl) {
+      setError('Por favor, informe o nome e a URL RTSP.');
       return;
     }
 
-    if (!rtspUrl.trim().toLowerCase().startsWith('rtsp://')) {
-      setError('A URL deve comecar com rtsp://.');
+    if (!trimmedUrl.toLowerCase().startsWith('rtsp://')) {
+      setError('A URL deve iniciar obrigatoriamente com rtsp://');
       return;
     }
 
     setIsSaving(true);
     try {
-      await onSave({ name, rtspUrl });
+      await onSave({ name: trimmedName, rtspUrl: trimmedUrl });
       setName('');
       setRtspUrl('');
       onClose();
     } catch (saveError) {
-      setError(saveError instanceof Error ? saveError.message : 'Nao foi possivel salvar.');
+      setError(saveError instanceof Error ? saveError.message : 'Não foi possível registrar a câmera.');
     } finally {
       setIsSaving(false);
     }
@@ -55,42 +86,79 @@ export function AddCameraModal({ isOpen, onClose, onSave }: AddCameraModalProps)
       >
         <header className="modal-header">
           <div>
-            <h2 id="add-camera-title">Nova camera RTSP</h2>
-            <p>O app registra a URL no go2rtc e toca o stream convertido.</p>
+            <h2 id="add-camera-title">Nova Câmera RTSP</h2>
+            <p>O stream será convertido para WebRTC e HLS com latência ultrabaixa.</p>
           </div>
-          <button className="text-button" type="button" onClick={onClose}>
-            Fechar
+          <button
+            className="modal-close-btn"
+            type="button"
+            title="Fechar"
+            aria-label="Fechar modal"
+            onClick={onClose}
+          >
+            <CloseIcon size={18} />
           </button>
         </header>
 
+        {/* Quick Presets */}
+        <div className="presets-section">
+          <span className="presets-label">Exemplos Rápidos de Conexão</span>
+          <div className="presets-grid">
+            {RTSP_PRESETS.map((preset) => (
+              <button
+                key={preset.name}
+                type="button"
+                className="preset-chip"
+                onClick={() => handleApplyPreset(preset.url, preset.name)}
+                title={`Usar modelo de URL ${preset.name}`}
+              >
+                + {preset.name}
+              </button>
+            ))}
+          </div>
+        </div>
+
         <form className="camera-form" onSubmit={handleSubmit}>
-          <label>
-            <span>Nome da camera</span>
+          <div className="form-group">
+            <label htmlFor="camera-name-field">Nome de Identificação</label>
             <input
+              id="camera-name-field"
+              className="glass-input"
               value={name}
               onChange={(event) => setName(event.target.value)}
-              placeholder="Entrada principal"
+              placeholder="Ex: Entrada Principal, Garagem, Recepção"
               autoFocus
             />
-          </label>
+          </div>
 
-          <label>
-            <span>URL RTSP</span>
+          <div className="form-group">
+            <label htmlFor="camera-url-field">URL RTSP da Câmera</label>
             <input
+              id="camera-url-field"
+              className="glass-input"
               value={rtspUrl}
               onChange={(event) => setRtspUrl(event.target.value)}
-              placeholder="rtsp://usuario:senha@ip:554/stream1"
+              placeholder="rtsp://usuario:senha@192.168.1.100:554/stream"
+              spellCheck={false}
             />
-          </label>
+            <span className="input-helper">
+              Dica: Certifique-se de que o IP da câmera e a porta 554 estão acessíveis na rede.
+            </span>
+          </div>
 
-          {error ? <p className="form-error">{error}</p> : null}
+          {error ? (
+            <div className="form-error-glass" role="alert">
+              <span>{error}</span>
+            </div>
+          ) : null}
 
           <div className="modal-actions">
-            <button className="secondary-button" type="button" onClick={onClose}>
+            <button className="glass-btn-secondary" type="button" onClick={onClose} disabled={isSaving}>
               Cancelar
             </button>
-            <button className="primary-button" type="submit" disabled={isSaving}>
-              {isSaving ? 'Salvando...' : 'Salvar camera'}
+            <button className="liquid-btn-primary" type="submit" disabled={isSaving}>
+              <Plus size={18} />
+              <span>{isSaving ? 'Registrando...' : 'Salvar Câmera'}</span>
             </button>
           </div>
         </form>
